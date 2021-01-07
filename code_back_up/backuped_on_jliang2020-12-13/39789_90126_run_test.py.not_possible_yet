@@ -1,0 +1,63 @@
+import Cython
+import Cython.Compiler.Code
+import Cython.Compiler.FlowControl
+import Cython.Compiler.Lexicon
+import Cython.Compiler.Parsing
+import Cython.Compiler.Scanning
+import Cython.Compiler.Visitor
+import Cython.Plex.Actions
+import Cython.Plex.Scanners
+import Cython.Runtime.refnanny
+import sysconfig
+import sys
+import os
+import subprocess
+from pprint import pprint
+from os.path import isfile
+
+print('sys.executable: %r' % sys.executable)
+print('sys.prefix: %r' % sys.prefix)
+print('sys.version: %r' % sys.version)
+print('PATH: %r' % os.environ['PATH'])
+print('CWD: %r' % os.getcwd())
+print('ENVIRON: %s' % os.environ)
+
+from distutils.spawn import find_executable
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Distutils import build_ext
+
+try:
+  compiler=os.path.basename(''.join(sysconfig.get_config_vars('CC')).split(' ')[0])
+except:
+  compiler='gcc'
+
+print('compiler determined as {}'.format(compiler))
+if find_executable(compiler):
+    print('found exectuable {}'.format(find_executable(compiler))
+    # Identifies a cross-compiler (cannot check any dumpmachine-y vars here as Python
+    # may be for host or build and the compilers likewise, we only care that the can
+    # be executed successfully on build).
+    # This logic may be better off put into Cython itself (or Python's _sysconfig even?)
+    if '-' in compiler and 'PREFIX' in os.environ:
+        existing_cflags = os.environ.get('CFLAGS') if os.environ.get('CFLAGS') else ''
+        os.environ['CFLAGS'] = '-L{0}/lib -I{0}/include {1}'.format(os.environ['PREFIX'], existing_cflags)
+os.environ.get('CFLAGS')
+    sys.argv[1:] = ['build_ext', '--inplace']
+    setup(name='fib',
+          cmdclass={'build_ext': build_ext},
+          ext_modules=[Extension("fib", ["fib.pyx"])])
+
+    try:
+        import fib
+        assert fib.fib(10) == 55
+    except ImportError:
+        cmd = [sys.executable, '-c', 'import fib; print(fib.fib(10))']
+        out = subprocess.check_output(cmd)
+        assert out.decode('utf-8').strip() == '55'
+
+print(os.getcwd())
+print(os.environ['PATH'])
+import time
+while True:
+    time.sleep(100)
